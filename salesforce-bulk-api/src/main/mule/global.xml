@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd">
+	<configuration-properties doc:name="Configuration properties" doc:id="312e75a4-acaf-45a7-8aa6-ab05b87acad8" file="application.yaml" />
+	<salesforce:sfdc-config name="Salesforce_Config" doc:name="Salesforce Config" doc:id="058c8653-7ffc-418d-a944-b0d45f44e079" >
+		<salesforce:oauth-user-pass-connection consumerKey="${salesforce.config.consumerkey}" consumerSecret="${salesforce.config.consumersecret}" username="${salesforce.config.username}" password="${salesforce.config.password}" securityToken="${salesforce.config.securitytoken}" tokenEndpoint="${salesforce.config.tokenuri}" />
+	</salesforce:sfdc-config>
+	<file:config name="File_Config" doc:name="File Config" doc:id="4160a21b-6d74-49fb-9e8e-41294d08c6f1" />
+</mule>

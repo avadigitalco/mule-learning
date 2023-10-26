@@ -1,0 +1,12 @@
+salesforce:
+  config:
+    consumerkey: ""
+    consumersecret: ""
+    username: ""
+    password: ""
+    securitytoken: ""
+    tokenuri: ""
+    
+csv:
+  file:
+    path: "path/to/file"

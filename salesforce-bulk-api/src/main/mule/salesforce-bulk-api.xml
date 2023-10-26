@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:file="http://www.mulesoft.org/schema/mule/file"
+	xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<flow name="salesforce-bulk-apiFlow" doc:id="0ecda7d5-10d9-40f7-b7c0-86198c2b36e0" >
+		<scheduler doc:name="Scheduler" doc:id="34cd537a-bfbe-4a6d-8193-9e16c60565ac" >
+			<scheduling-strategy >
+				<fixed-frequency frequency="1" timeUnit="DAYS"/>
+			</scheduling-strategy>
+		</scheduler>
+		<file:read doc:id="c6ee452d-3a3f-4157-9d23-cf1a94c84b8c" config-ref="File_Config" path="${csv.file.path}"/>
+		<ee:transform doc:name="Transform Message to JSON" doc:id="316013d8-958c-4b23-b502-125c07651aaa" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+input payload application/csv separator=";", header=true
+output application/json
+---
+payload ]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<salesforce:create-job-bulk-api-v2 objectType="Account" operation="upsert" doc:name="Create job bulk api v 2" doc:id="d0a7301a-dd86-43d7-a48d-22556a18ae4e" config-ref="Salesforce_Config" externalIdFieldName="Id"/>
+		<set-variable value="#[payload.id]" doc:name="jobId" doc:id="ca1d2764-ea88-47e5-9816-618e5e6057e7" variableName="jobId"/>
+		<logger level="INFO" doc:name="START" doc:id="6e9fbef9-ec44-47bf-a34d-ec04421da6ab" message='#["****Starting upsert process using bulk api v2 [jobId: "++ vars.jobId ++"]****"]'/>
+		<until-successful maxRetries="5" doc:name="Until Successful" doc:id="61d964de-c4b2-494b-9766-ef54b4ebd295" >
+			<salesforce:get-job-state-bulk-api-v2 doc:name="Get job state bulk api v 2" doc:id="ccdcde4c-5a7b-4e7d-b21e-7fb303ad3b14" config-ref="Salesforce_Config" id="#[vars.jobId]"/>
+			<set-variable value="#[payload.state]" doc:name="Jobstate" doc:id="ccb143c6-84a3-4d33-8ed4-9823d59ad7bf" variableName="jobstate" />
+			<choice doc:name="Choice" doc:id="d347d905-3e54-4815-851c-3c447089d234" >
+				<when expression='#[vars.jobstate == "JobComplete"]'>
+					<logger level="INFO" doc:name="Logger" doc:id="f25e9350-84e4-4d8f-918f-56a15ddebf22" message="***Job is complete***"/>
+					<salesforce:retrieve-job-successful-results-bulk-v2 doc:name="Retrieve job successful results bulk v 2" doc:id="70b0488e-6b2d-48a1-bdb1-48a78f1631e1" config-ref="Salesforce_Config" id="#[vars.jobId]"/>
+				</when>
+				<when expression='#[vars.jobstate == "Failed" or vars.jobstate == "Aborted"]'>
+					<logger level="INFO" doc:name="Logger" doc:id="6ba41c71-ddaf-4941-8901-5864269916bc" message="***Job is failed or aborted***"/>
+					<salesforce:retrieve-job-failed-results-bulk-v2 doc:name="Retrieve job failed results bulk v 2" doc:id="f09cce15-294c-42c1-8cca-d3aaef483151" config-ref="Salesforce_Config" id="#[vars.jobId]"/>
+				</when>
+				<otherwise>
+					<logger level="INFO" doc:name="Logger" doc:id="2985a935-e805-470c-86a2-2fbe51a977f3" message="***Bulk API 2 is still in progress***"/>
+					<raise-error doc:name="Raise error" doc:id="bfe10ab8-c56e-4dad-8d25-a4d7e306f37c" type="SF:JOB_IN_PROGRESS" description="Bulk API 2 is still in progress"/>
+				
+</otherwise>
+			</choice>
+			<logger level="INFO" doc:name="END" doc:id="6efdaa58-5a28-4449-bd69-8c9411b6601f" message='#["****Finished upsert process using bulk api v2 [jobId: " ++ vars.jobId ++ "]****"]'/>
+		
+</until-successful>
+	</flow>
+</mule>
